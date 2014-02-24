@@ -25,10 +25,12 @@ if !File.file?(File.expand_path(ARGV[1].to_s))
 	exit -1
 end
 
-if !ARGV[2] || !File.directory?(File.expand_path(ARGV[2].to_s)) || !FileUtils.mkdir_p(File.join(ARGV[2].to_s, "media", "state", "units"))
-	puts "[ERROR] OUTPUT_DIRECTORY required"
-	puts FIG2COREOS_BANNER
-	exit -1
+if !ARGV[2] || !File.directory?(File.expand_path(ARGV[2].to_s))
+	if !FileUtils.mkdir_p(File.join(ARGV[2].to_s, "media", "state", "units"))
+		puts "[ERROR] OUTPUT_DIRECTORY required"
+		puts FIG2COREOS_BANNER
+		exit -1
+	end
 end
 
 vagrant_version = `vagrant --version`.split.last
