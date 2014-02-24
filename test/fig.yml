@@ -1,0 +1,32 @@
+serf:
+  image: ctlc/serf
+  ports:
+    - 7373
+    - 7946
+lb:
+  image: ctlc/haproxy
+  ports:
+    - 80:80
+  links:
+    - serf
+  environment:
+    HAPROXY_PASSWORD: 38uf8hhf38h
+web:
+  image: ctlc/wordpress
+  ports:
+    - 80
+  environment:
+    DB_USER: root
+    DB_PASSWORD: 38uf8hhf38h
+  links:
+    - serf
+    - db
+db:
+  image: orchardup/mysql
+  links:
+    - serf
+  ports:
+    - 3306
+  environment:
+    MYSQL_DATABASE: wordpress
+    MYSQL_ROOT_PASSWORD: 38uf8hhf38h

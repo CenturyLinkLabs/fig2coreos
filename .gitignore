@@ -1,0 +1,6 @@
+test/output/media
+test/output/.vagrant
+test/output/Vagrantfile
+test/output/setup-coreos.sh
+.DS_Store
+*.gem
