@@ -4,14 +4,20 @@ require File.expand_path(File.join(File.dirname(__FILE__), "..", "lib", "fig2cor
 
 FIG2COREOS_BANNER = "Usage: fig2coreos [options] APP_NAME FIG_YAML OUTPUT_DIRECTORY"
 
-options = {type: "vagrant"}
+options = {type: "fleet"}
+
 OptionParser.new do |opts|
   opts.banner = FIG2COREOS_BANNER
 
-  opts.on("-t", "--type TYPE", "Output type: vagrant (default), systemd (just the systemd service files)") do |type|
+  opts.on("-t", "--type TYPE", "Output type: fllet (default) or vagrant (generate a Vagrantfile)") do |type|
     options[:type] = type
   end
 end.parse!
+
+if ARGV[0].to_s.include?("-t")
+	ARGV.shift
+	ARGV.shift
+end
 
 if ARGV[0].nil?
 	puts "[ERROR] APP_NAME required"
@@ -33,9 +39,7 @@ if !ARGV[2] || !File.directory?(File.expand_path(ARGV[2].to_s))
 	end
 end
 
-vagrant_version = `vagrant --version`.split.last
-
-if options[:type] == "vagrant" && Gem::Version.new(vagrant_version) < Gem::Version.new("1.4.3")
+if options[:type] == "vagrant" && Gem::Version.new(`vagrant --version`.split.last) < Gem::Version.new("1.4.3")
 	puts "[ERROR] Your version of vagrant (#{vagrant_version}) is out of date, please upgrade to at least 1.4.3 at http://www.vagrantup.com/downloads.html or change the --type"
 	exit -1
 end

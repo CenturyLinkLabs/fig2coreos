@@ -13,17 +13,20 @@ class Fig2CoreOS
     @app_name = app_name
     @fig = YAML.load_file(fig_file.to_s)
     @output_dir = File.expand_path(output_dir.to_s)
+    @vagrant = (options[:type] == "vagrant")
 
     # clean and setup directory structure
+    FileUtils.rm_rf(Dir[File.join(@output_dir, "*.service")])
     FileUtils.rm_rf(File.join(@output_dir, "media"))
     FileUtils.rm_rf(File.join(@output_dir, "setup-coreos.sh"))
     FileUtils.rm_rf(File.join(@output_dir, "Vagrantfile"))
-    FileUtils.mkdir_p(File.join(@output_dir, "media", "state", "units"))
-
+    
+    if @vagrant
+        FileUtils.mkdir_p(File.join(@output_dir, "media", "state", "units"))
+        create_vagrant_file
+    end
+    
     create_service_files
-
-    create_vagrant_file if options[:type] == "vagrant"
-
     exit 0
   end
 
@@ -43,7 +46,13 @@ class Fig2CoreOS
         "docker"
       end
 
-  		File.open(File.join(@output_dir, "media", "state", "units", "#{service_name}.1.service"), "w") do |file|
+      if @vagrant
+        base_path = File.join(@output_dir, "media", "state", "units")
+      else
+        base_path = @output_dir
+      end
+
+  		File.open(File.join(base_path, "#{service_name}.1.service") , "w") do |file|
         file << <<-eof
 [Unit]
 Description=Run #{service_name}_1
@@ -64,7 +73,7 @@ WantedBy=local.target
 eof
   		end
 
-      File.open(File.join(@output_dir, "media", "state", "units", "#{service_name}-discovery.1.service"), "w") do |file|
+      File.open(File.join(base_path, "#{service_name}-discovery.1.service"), "w") do |file|
         file << <<-eof
 [Unit]
 Description=Announce #{service_name}_1
