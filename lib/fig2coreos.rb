@@ -1,6 +1,3 @@
-require 'rubygems'
-require 'bundler/setup' 
-
 require 'yaml'
 require 'fileutils'
 
