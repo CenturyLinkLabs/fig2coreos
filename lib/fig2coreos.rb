@@ -71,13 +71,14 @@ eof
   		end
 
       File.open(File.join(base_path, "#{service_name}-discovery.1.service"), "w") do |file|
+        port = %{\\"port\\": #{service["ports"].first.to_s.split(":").first}, } if service["ports"].to_a.size > 0
         file << <<-eof
 [Unit]
 Description=Announce #{service_name}_1
 BindsTo=#{service_name}.1.service
 
 [Service]
-ExecStart=/bin/sh -c "while true; do etcdctl set /services/#{service_name}/#{service_name}_1 '{ \\"host\\": \\"%H\\", \\"port\\": #{service["ports"].first.to_s.split(":").first}, \\"version\\": \\"52c7248a14\\" }' --ttl 60;sleep 45;done"
+ExecStart=/bin/sh -c "while true; do etcdctl set /services/#{service_name}/#{service_name}_1 '{ \\"host\\": \\"%H\\", #{port}\\"version\\": \\"52c7248a14\\" }' --ttl 60;sleep 45;done"
 ExecStop=/usr/bin/etcdctl rm /services/#{service_name}/#{service_name}_1
 
 [X-Fleet]
