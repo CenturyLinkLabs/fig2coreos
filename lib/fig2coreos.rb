@@ -30,8 +30,10 @@ class Fig2CoreOS
   def create_service_files
   	@fig.each do |service_name, service|
       image = service["image"]
+      command = service["command"]
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
+      volumes_from = (service["volumes_from"] || []).map{|volume_from| "--volumes-from #{volume_from}"}
       links = (service["links"] || []).map{|link| "--link #{link}_1:#{link}_1"}
       envs = (service["environment"] || []).map do |env_name, env_value|
         "-e \"#{env_name}=#{env_value}\""
@@ -60,13 +62,16 @@ Requires=#{after}.service
 Restart=always
 RestartSec=10s
 ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
-ExecStart=/usr/bin/docker run -rm -name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image}
+ExecStart=/usr/bin/docker run -rm -name #{service_name}_1 #{volumes.join(" ")} #{volumes_from.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image} #{command}
 ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
 ExecStop=/usr/bin/docker kill #{service_name}_1
 ExecStopPost=/usr/bin/docker ps -a -q | xargs docker rm
 
 [Install]
 WantedBy=local.target
+
+[X-Fleet]
+X-Conflicts=#{service_name}.*.service
 eof
   		end
 
