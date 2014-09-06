@@ -31,6 +31,21 @@ class Fig2CoreOS
   	@fig.each do |service_name, service|
       image = service["image"]
       command = service["command"]
+      hostname = if service["hostname"]
+        "--hostname " + service["hostname"]
+      else
+        ""
+      end
+      domainname = if service["domainname"]
+        "--domainname " + service["domainname"]
+      else
+        ""
+      end
+      privileged = if service["privileged"]
+        "--privileged"
+      else
+        ""
+      end 
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
       volumes_from = (service["volumes_from"] || []).map{|volume_from| "--volumes-from #{volume_from}"}
@@ -62,7 +77,7 @@ Requires=#{after}.service
 Restart=always
 RestartSec=10s
 ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
-ExecStart=/usr/bin/docker run --rm --name #{service_name}_1 #{volumes.join(" ")} #{volumes_from.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image} #{command}
+ExecStart=/usr/bin/docker run --rm --name #{service_name}_1 #{volumes.join(" ")} #{volumes_from.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{privileged} #{hostname} #{domainname} #{image} #{command}
 ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
 ExecStop=/usr/bin/docker kill #{service_name}_1
 ExecStopPost=/usr/bin/docker ps -a -q | xargs docker rm
