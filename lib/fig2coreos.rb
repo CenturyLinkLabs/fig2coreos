@@ -46,6 +46,11 @@ class Fig2CoreOS
       else
         ""
       end 
+      tty = if service["tty"]
+        "--tty"
+      else
+        ""
+      end 
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
       volumes_from = (service["volumes_from"] || []).map{|volume_from| "--volumes-from #{volume_from}"}
