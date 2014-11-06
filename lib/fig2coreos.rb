@@ -67,6 +67,7 @@ After=#{after}.service
 Requires=#{after}.service
 
 [Service]
+User=core
 Restart=always
 RestartSec=10s
 ExecStartPre=/usr/bin/docker pull #{image}
