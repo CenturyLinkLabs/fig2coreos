@@ -32,7 +32,14 @@ class Fig2CoreOS
       image = service["image"]
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
-      links = (service["links"] || []).map{|link| "--link #{link}_1:#{link}_1"}
+
+      links = (service["links"] || []).map do |link|
+        container_name = link.split(":")[0]
+        container_alias = link.split(":")[1] || "#{container_name}_1"
+
+        "--link #{container_name}_1:#{container_alias}"
+      end
+
       envs = (service["environment"] || []).map do |env_name, env_value|
         "-e \"#{env_name}=#{env_value}\""
       end
