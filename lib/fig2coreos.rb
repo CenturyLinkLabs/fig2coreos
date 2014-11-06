@@ -29,6 +29,7 @@ class Fig2CoreOS
 
   def create_service_files
   	@fig.each do |service_name, service|
+      service_name ="#{@app_name}_#{service_name}"
       image = service["image"]
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
@@ -37,7 +38,7 @@ class Fig2CoreOS
         container_name = link.split(":")[0]
         container_alias = link.split(":")[1] || "#{container_name}_1"
 
-        "--link #{container_name}_1:#{container_alias}"
+        "--link #{@app_name}_#{container_name}_1:#{container_alias}"
       end
 
       envs = (service["environment"] || []).map do |env_name, env_value|
@@ -45,7 +46,7 @@ class Fig2CoreOS
       end
 
       after = if service["links"]
-        "#{service["links"].last}.1"
+        "#{@app_name}_#{service["links"].last}.1"
       else
         "docker"
       end
