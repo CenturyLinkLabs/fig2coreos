@@ -46,7 +46,9 @@ class Fig2CoreOS
       end
 
       after = if service["links"]
-        "#{@app_name}_#{service["links"].last}.1"
+        container_name = service["links"].last.split(":")[0]
+
+        "#{@app_name}_#{container_name}.1"
       else
         "docker"
       end
