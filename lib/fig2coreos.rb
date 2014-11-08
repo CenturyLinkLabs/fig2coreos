@@ -33,6 +33,7 @@ class Fig2CoreOS
       image = service["image"]
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
+      privileged = service["privileged"]
 
       links = (service["links"] || []).map do |link|
         container_name = link.split(":")[0]
@@ -72,7 +73,7 @@ Restart=always
 RestartSec=10s
 ExecStartPre=/usr/bin/docker pull #{image}
 ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
-ExecStart=/usr/bin/docker run -rm -name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image}
+ExecStart=/usr/bin/docker run #{privileged && "--privileged=true"} -rm -name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image}
 ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
 ExecStop=/usr/bin/docker kill #{service_name}_1
 ExecStopPost=/usr/bin/docker ps -a -q | xargs docker rm
