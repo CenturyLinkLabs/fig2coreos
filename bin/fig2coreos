@@ -4,13 +4,17 @@ require File.expand_path(File.join(File.dirname(__FILE__), "..", "lib", "fig2cor
 
 FIG2COREOS_BANNER = "Usage: fig2coreos [options] APP_NAME FIG_YAML OUTPUT_DIRECTORY"
 
-options = {type: "fleet"}
+options = {type: "fleet", skip_discovery_file: false}
 
 opt_parser = OptionParser.new do |opts|
   opts.banner = FIG2COREOS_BANNER
 
   opts.on("-t", "--type TYPE", "Output type: fleet (default) or vagrant (generate a Vagrantfile)") do |type|
     options[:type] = type
+  end
+
+  opts.on("-d", "--skip_discovery_file", "Don't make a discovery service file") do
+    options[:skip_discovery_file] = true
   end
 
   opts.on( '-h', '--help', 'Display this screen' ) do

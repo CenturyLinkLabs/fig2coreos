@@ -11,6 +11,7 @@ class Fig2CoreOS
     @fig = YAML.load_file(fig_file.to_s)
     @output_dir = File.expand_path(output_dir.to_s)
     @vagrant = (options[:type] == "vagrant")
+    @options = options
 
     # clean and setup directory structure
     FileUtils.rm_rf(Dir[File.join(@output_dir, "*.service")])
@@ -70,20 +71,22 @@ WantedBy=local.target
 eof
   		end
 
-      File.open(File.join(base_path, "#{service_name}-discovery.1.service"), "w") do |file|
-        port = %{\\"port\\": #{service["ports"].first.to_s.split(":").first}, } if service["ports"].to_a.size > 0
-        file << <<-eof
-[Unit]
-Description=Announce #{service_name}_1
-BindsTo=#{service_name}.1.service
+      unless @options[:skip_discovery_file]
+        File.open(File.join(base_path, "#{service_name}-discovery.1.service"), "w") do |file|
+          port = %{\\"port\\": #{service["ports"].first.to_s.split(":").first}, } if service["ports"].to_a.size > 0
+          file << <<-eof
+  [Unit]
+  Description=Announce #{service_name}_1
+  BindsTo=#{service_name}.1.service
 
-[Service]
-ExecStart=/bin/sh -c "while true; do etcdctl set /services/#{service_name}/#{service_name}_1 '{ \\"host\\": \\"%H\\", #{port}\\"version\\": \\"52c7248a14\\" }' --ttl 60;sleep 45;done"
-ExecStop=/usr/bin/etcdctl rm /services/#{service_name}/#{service_name}_1
+  [Service]
+  ExecStart=/bin/sh -c "while true; do etcdctl set /services/#{service_name}/#{service_name}_1 '{ \\"host\\": \\"%H\\", #{port}\\"version\\": \\"52c7248a14\\" }' --ttl 60;sleep 45;done"
+  ExecStop=/usr/bin/etcdctl rm /services/#{service_name}/#{service_name}_1
 
-[X-Fleet]
-X-ConditionMachineOf=#{service_name}.1.service
-eof
+  [X-Fleet]
+  X-ConditionMachineOf=#{service_name}.1.service
+  eof
+        end
       end
     end
   end
