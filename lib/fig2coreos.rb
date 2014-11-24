@@ -1,4 +1,5 @@
 require 'yaml'
+require 'erb'
 require 'fileutils'
 
 class Fig2CoreOS
@@ -8,7 +9,7 @@ class Fig2CoreOS
 
   def initialize(app_name, fig_file, output_dir, options={})
     @app_name = app_name
-    @fig = YAML.load_file(fig_file.to_s)
+    @fig = load_yml(fig_file.to_s)
     @output_dir = File.expand_path(output_dir.to_s)
     @vagrant = (options[:type] == "vagrant")
     @options = options
@@ -26,6 +27,16 @@ class Fig2CoreOS
     
     create_service_files
     exit 0
+  end
+
+  #This assumes that all attempted files other than .erb can be parsed as yaml
+  def load_yml(filename)
+    case File.extname(filename.to_s)
+    when '.erb'
+      YAML.load(ERB.new(File.read(filename.to_s)).result)
+    else
+      YAML.load_file(filename.to_s)
+    end
   end
 
   def create_service_files
