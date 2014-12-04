@@ -10,4 +10,11 @@ Gem::Specification.new do |s|
   s.homepage    = 'http://github.com/CenturyLinkLabs/fig2coreos'
   s.license     = 'MIT'
   s.executables << 'fig2coreos'
+  s.add_development_dependency "rspec"
+  s.add_development_dependency "rspec-nc"
+  s.add_development_dependency "guard"
+  s.add_development_dependency "guard-rspec"
+  s.add_development_dependency "pry"
+  s.add_development_dependency "pry-remote"
+  s.add_development_dependency "pry-nav"
 end
