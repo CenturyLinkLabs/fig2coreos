@@ -1,0 +1,13 @@
+serf:
+  image: ctlc/serf
+  ports:
+    - 7373
+    - 7946
+lb:
+  image: ctlc/haproxy
+  ports:
+    - 80:80
+  links:
+    - serf
+  environment:
+    HAPROXY_PASSWORD: 38uf8hhf38h
