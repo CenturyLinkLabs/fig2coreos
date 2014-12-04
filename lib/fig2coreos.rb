@@ -26,7 +26,6 @@ class Fig2CoreOS
     end
     
     create_service_files
-    exit 0
   end
 
   #This assumes that all attempted files other than .erb can be parsed as yaml
