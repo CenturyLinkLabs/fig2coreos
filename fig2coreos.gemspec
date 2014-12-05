@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'fig2coreos'
-  s.version     = '0.1.7'
+  s.version     = '0.1.8'
   s.date        = '2014-04-24'
   s.summary     = "Convert fig to coreos formatted configuration files"
   s.description = "Convert fig to coreos formatted configuration files"
