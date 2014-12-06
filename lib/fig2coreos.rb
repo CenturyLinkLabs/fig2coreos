@@ -43,8 +43,12 @@ class Fig2CoreOS
         "--link #{@app_name}-#{container_name}_1:#{container_alias}"
       end
 
-      envs = (service["environment"] || []).map do |env_name, env_value|
-        "-e \"#{env_name}=#{env_value}\""
+      envs_directives = (service["environment"] || []).map do |env_name, env_value|
+        "Environment=\"#{env_name}=#{env_value}\""
+      end
+
+      envs_run_parameters = (service["environment"] || []).map do |env_name, env_value|
+        "-e #{env_name}"
       end
 
       after = if service["links"]
@@ -72,9 +76,10 @@ Requires=#{after}.service
 User=core
 Restart=always
 RestartSec=10s
+#{envs_directives.join("\n")}
 ExecStartPre=/usr/bin/docker pull #{image}
 ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
-ExecStart=/usr/bin/docker run #{privileged && "--privileged=true"} -rm -name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image} #{command}
+ExecStart=/usr/bin/docker run #{privileged && "--privileged=true"} -rm -name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs_run_parameters.join(" ")} #{ports.join(" ")} #{image} #{command}
 ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
 ExecStop=/usr/bin/docker kill #{service_name}_1
 ExecStopPost=/usr/bin/docker ps -a -q | xargs docker rm
