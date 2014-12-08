@@ -20,6 +20,10 @@ To convert any fig.yml into a set of CoreOS systemd configuration files, just po
 	$ cd coreos-dir
 	$ fleetctl start *
 
+This also works with fig.erb files, which may be used to add custom environment variables.
+
+	$ fig2coreos app-name fig.erb coreos-dir
+
 To see how to setup fleetctl and CoreOS, here is an end-to-end tutorial: http://www.centurylinklabs.com/building-your-first-app-on-coreos/
 
 Use with Vagrant

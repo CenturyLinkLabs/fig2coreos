@@ -1,4 +1,5 @@
 require 'yaml'
+require 'erb'
 require 'fileutils'
 
 class Fig2CoreOS
@@ -8,9 +9,10 @@ class Fig2CoreOS
 
   def initialize(app_name, fig_file, output_dir, options={})
     @app_name = app_name
-    @fig = YAML.load_file(fig_file.to_s)
+    @fig = load_yml(fig_file.to_s)
     @output_dir = File.expand_path(output_dir.to_s)
     @vagrant = (options[:type] == "vagrant")
+    @options = options
 
     # clean and setup directory structure
     FileUtils.rm_rf(Dir[File.join(@output_dir, "*.service")])
@@ -24,7 +26,16 @@ class Fig2CoreOS
     end
     
     create_service_files
-    exit 0
+  end
+
+  #This assumes that all attempted files other than .erb can be parsed as yaml
+  def load_yml(filename)
+    case File.extname(filename.to_s)
+    when '.erb'
+      YAML.load(ERB.new(File.read(filename.to_s)).result)
+    else
+      YAML.load_file(filename.to_s)
+    end
   end
 
   def create_service_files
@@ -32,7 +43,7 @@ class Fig2CoreOS
       image = service["image"]
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
-      links = (service["links"] || []).map{|link| "--link #{link}_1:#{link}_1"}
+      links = (service["links"] || []).map{|link| "--link #{link}_1:mysql"}
       envs = (service["environment"] || []).map do |env_name, env_value|
         "-e \"#{env_name}=#{env_value}\""
       end
@@ -60,6 +71,7 @@ Requires=#{after}.service
 Restart=always
 RestartSec=10s
 ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
+ExecStartPre=/usr/bin/docker pull #{image}
 ExecStart=/usr/bin/docker run -rm -name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image}
 ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
 ExecStop=/usr/bin/docker kill #{service_name}_1
@@ -70,20 +82,22 @@ WantedBy=local.target
 eof
   		end
 
-      File.open(File.join(base_path, "#{service_name}-discovery.1.service"), "w") do |file|
-        port = %{\\"port\\": #{service["ports"].first.to_s.split(":").first}, } if service["ports"].to_a.size > 0
-        file << <<-eof
-[Unit]
-Description=Announce #{service_name}_1
-BindsTo=#{service_name}.1.service
+      unless @options[:skip_discovery_file]
+        File.open(File.join(base_path, "#{service_name}-discovery.1.service"), "w") do |file|
+          port = %{\\"port\\": #{service["ports"].first.to_s.split(":").first}, } if service["ports"].to_a.size > 0
+          file << <<-eof
+  [Unit]
+  Description=Announce #{service_name}_1
+  BindsTo=#{service_name}.1.service
 
-[Service]
-ExecStart=/bin/sh -c "while true; do etcdctl set /services/#{service_name}/#{service_name}_1 '{ \\"host\\": \\"%H\\", #{port}\\"version\\": \\"52c7248a14\\" }' --ttl 60;sleep 45;done"
-ExecStop=/usr/bin/etcdctl rm /services/#{service_name}/#{service_name}_1
+  [Service]
+  ExecStart=/bin/sh -c "while true; do etcdctl set /services/#{service_name}/#{service_name}_1 '{ \\"host\\": \\"%H\\", #{port}\\"version\\": \\"52c7248a14\\" }' --ttl 60;sleep 45;done"
+  ExecStop=/usr/bin/etcdctl rm /services/#{service_name}/#{service_name}_1
 
-[X-Fleet]
-X-ConditionMachineOf=#{service_name}.1.service
-eof
+  [X-Fleet]
+  X-ConditionMachineOf=#{service_name}.1.service
+  eof
+        end
       end
     end
   end
