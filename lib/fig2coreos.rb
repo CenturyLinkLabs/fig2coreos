@@ -71,6 +71,7 @@ Requires=#{after}.service
 Restart=always
 RestartSec=10s
 ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
+ExecStartPre=/usr/bin/docker pull #{image}
 ExecStart=/usr/bin/docker run -rm -name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image}
 ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
 ExecStop=/usr/bin/docker kill #{service_name}_1
