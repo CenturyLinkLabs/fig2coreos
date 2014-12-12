@@ -78,7 +78,7 @@ Restart=always
 RestartSec=10s
 #{envs_directives.join("\n")}
 ExecStartPre=/usr/bin/docker pull #{image}
-ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
+ExecStartPre=-/usr/bin/docker rm -f #{service_name}_1
 ExecStart=/usr/bin/docker run #{privileged && "--privileged=true"} --rm --name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs_run_parameters.join(" ")} #{ports.join(" ")} #{image} #{command}
 ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
 ExecStop=/usr/bin/docker kill #{service_name}_1
