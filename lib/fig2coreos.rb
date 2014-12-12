@@ -73,6 +73,7 @@ After=#{after}.service
 Requires=#{after}.service
 
 [Service]
+TimeoutStartSec=0
 User=core
 Restart=always
 RestartSec=10s
