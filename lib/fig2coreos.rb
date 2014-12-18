@@ -17,12 +17,12 @@ class Fig2CoreOS
     FileUtils.rm_rf(File.join(@output_dir, "media"))
     FileUtils.rm_rf(File.join(@output_dir, "setup-coreos.sh"))
     FileUtils.rm_rf(File.join(@output_dir, "Vagrantfile"))
-    
+
     if @vagrant
         FileUtils.mkdir_p(File.join(@output_dir, "media", "state", "units"))
         create_vagrant_file
     end
-    
+
     create_service_files
     exit 0
   end
@@ -65,7 +65,7 @@ class Fig2CoreOS
         base_path = @output_dir
       end
 
-  		File.open(File.join(base_path, "#{service_name}.1.service") , "w") do |file|
+      File.open(File.join(base_path, "#{service_name}.1.service") , "w") do |file|
         file << <<-eof
 [Unit]
 Description=Run #{service_name}_1
