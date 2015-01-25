@@ -54,9 +54,9 @@ class Fig2CoreOS
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
       volumes_from = (service["volumes_from"] || []).map{|volume_from| "--volumes-from #{volume_from}"}
-      links = (service["links"] || []).map{|link| "--link #{link}_1:#{link}_1"}
+      links = (service["links"] || []).map{|link| "--link #{link}_1:#{link}"}
       envs = (service["environment"] || []).map do |env_name, env_value|
-        "-e \"#{env_name}=#{env_value}\""
+        "systemd.setenv=\"#{env_name}=#{env_value}\""
       end
 
       after = if service["links"]
@@ -71,43 +71,27 @@ class Fig2CoreOS
         base_path = @output_dir
       end
 
-  		File.open(File.join(base_path, "#{service_name}.1.service") , "w") do |file|
+      File.open(File.join(base_path, "#{service_name}\@.service") , "w") do |file|
         file << <<-eof
 [Unit]
-Description=Run #{service_name}_1
+Description=Run #{service_name}%i
 After=#{after}.service
-Requires=#{after}.service
+Wants=#{after}.service
 
 [Service]
 Restart=always
 RestartSec=10s
-ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
-ExecStart=/usr/bin/docker run --rm --name #{service_name}_1 #{volumes.join(" ")} #{volumes_from.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{privileged} #{hostname} #{domainname} #{image} #{command}
-ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
-ExecStop=/usr/bin/docker kill #{service_name}_1
-ExecStopPost=/usr/bin/docker ps -a -q | xargs docker rm
+ExecStartPre=-/usr/bin/docker kill #{service_name}_%i
+ExecStartPre=-/usr/bin/docker rm #{service_name}_%i
+ExecStart=/usr/bin/docker run --rm --name #{service_name}_%i #{volumes.join(" ")} #{volumes_from.join(" ")} #{links.join(" ")} #{ports.join(" ")} #{privileged} #{tty} #{hostname} #{domainname} #{image} #{command} #{envs.join(" ")}
+ExecStop=/usr/bin/docker stop #{service_name}_%i
+ExecStopPost=/usr/bin/docker rm #{service_name}_%i
 
 [Install]
 WantedBy=local.target
 
 [X-Fleet]
-X-Conflicts=#{service_name}.*.service
-eof
-  		end
-
-      File.open(File.join(base_path, "#{service_name}-discovery.1.service"), "w") do |file|
-        port = %{\\"port\\": #{service["ports"].first.to_s.split(":").first}, } if service["ports"].to_a.size > 0
-        file << <<-eof
-[Unit]
-Description=Announce #{service_name}_1
-BindsTo=#{service_name}.1.service
-
-[Service]
-ExecStart=/bin/sh -c "while true; do etcdctl set /services/#{service_name}/#{service_name}_1 '{ \\"host\\": \\"%H\\", #{port}\\"version\\": \\"52c7248a14\\" }' --ttl 60;sleep 45;done"
-ExecStop=/usr/bin/etcdctl rm /services/#{service_name}/#{service_name}_1
-
-[X-Fleet]
-X-ConditionMachineOf=#{service_name}.1.service
+X-Conflicts=#{service_name}\@*.service
 eof
       end
     end
