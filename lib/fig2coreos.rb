@@ -84,8 +84,8 @@ RestartSec=10s
 ExecStartPre=-/usr/bin/docker kill #{service_name}_%i
 ExecStartPre=-/usr/bin/docker rm #{service_name}_%i
 ExecStart=/usr/bin/docker run --rm --name #{service_name}_%i #{volumes.join(" ")} #{volumes_from.join(" ")} #{links.join(" ")} #{ports.join(" ")} #{privileged} #{tty} #{hostname} #{domainname} #{image} #{command} #{envs.join(" ")}
-ExecStop=/usr/bin/docker stop #{service_name}_%i
-ExecStopPost=/usr/bin/docker rm #{service_name}_%i
+ExecStop=-/usr/bin/docker stop #{service_name}_%i
+ExecStopPost=-/usr/bin/docker rm #{service_name}_%i
 
 [Install]
 WantedBy=local.target
