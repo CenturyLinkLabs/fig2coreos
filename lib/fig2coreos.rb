@@ -52,15 +52,16 @@ class Fig2CoreOS
         ""
       end 
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
+      expose = (service["expose"] || []).map{|port| "--expose #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
       volumes_from = (service["volumes_from"] || []).map{|volume_from| "--volumes-from #{volume_from}"}
-      links = (service["links"] || []).map{|link| "--link #{link}_1:#{link}"}
+      links = (service["links"] || []).map{|link| "--link #{link}_%i:#{link}_%i"}
       envs = (service["environment"] || []).map do |env_name, env_value|
-        "systemd.setenv=\"#{env_name}=#{env_value}\""
+        "-e \"#{env_name}=#{env_value}\""
       end
 
       after = if service["links"]
-        "#{service["links"].last}.1"
+        "#{service["links"].last}.%i"
       else
         "docker"
       end
@@ -81,9 +82,10 @@ Wants=#{after}.service
 [Service]
 Restart=always
 RestartSec=10s
+EnvironmentFile=/etc/powerstrip.env
 ExecStartPre=-/usr/bin/docker kill #{service_name}_%i
 ExecStartPre=-/usr/bin/docker rm #{service_name}_%i
-ExecStart=/usr/bin/docker run --rm --name #{service_name}_%i #{volumes.join(" ")} #{volumes_from.join(" ")} #{links.join(" ")} #{ports.join(" ")} #{privileged} #{tty} #{hostname} #{domainname} #{image} #{command} #{envs.join(" ")}
+ExecStart=/usr/bin/docker run --rm --name #{service_name}_%i #{volumes.join(" ")} #{volumes_from.join(" ")} #{links.join(" ")} #{ports.join(" ")} #{expose.join(" ")}  #{privileged} #{tty} #{hostname} #{domainname}  #{envs.join(" ")} #{image} #{command}
 ExecStop=-/usr/bin/docker stop #{service_name}_%i
 ExecStopPost=-/usr/bin/docker rm #{service_name}_%i
 
