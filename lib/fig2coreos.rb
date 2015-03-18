@@ -73,6 +73,7 @@ After=#{after}.service
 Requires=#{after}.service
 
 [Service]
+KillMode=none
 TimeoutStartSec=0
 User=core
 Restart=always
