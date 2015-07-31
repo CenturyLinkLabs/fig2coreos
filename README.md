@@ -20,7 +20,7 @@ To convert any fig.yml into a set of CoreOS systemd configuration files, just po
 	$ cd coreos-dir
 	$ fleetctl start *
 
-To see how to setup fleetctl and CoreOS, here is an end-to-end tutorial: http://www.centurylinklabs.com/building-your-first-app-on-coreos/
+To see how to setup fleetctl and CoreOS, here is an end-to-end tutorial: https://labs.ctl.io/building-your-first-app-on-coreos/
 
 Use with Vagrant
 ----------------
