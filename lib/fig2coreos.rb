@@ -17,28 +17,44 @@ class Fig2CoreOS
     FileUtils.rm_rf(File.join(@output_dir, "media"))
     FileUtils.rm_rf(File.join(@output_dir, "setup-coreos.sh"))
     FileUtils.rm_rf(File.join(@output_dir, "Vagrantfile"))
-    
+
     if @vagrant
         FileUtils.mkdir_p(File.join(@output_dir, "media", "state", "units"))
         create_vagrant_file
     end
-    
+
     create_service_files
     exit 0
   end
 
   def create_service_files
   	@fig.each do |service_name, service|
+      service_name ="#{@app_name}-#{service_name}"
       image = service["image"]
       ports = (service["ports"] || []).map{|port| "-p #{port}"}
       volumes = (service["volumes"] || []).map{|volume| "-v #{volume}"}
-      links = (service["links"] || []).map{|link| "--link #{link}_1:#{link}_1"}
-      envs = (service["environment"] || []).map do |env_name, env_value|
-        "-e \"#{env_name}=#{env_value}\""
+      privileged = service["privileged"]
+      command = service["command"] || ""
+
+      links = (service["links"] || []).map do |link|
+        container_name = link.split(":")[0]
+        container_alias = link.split(":")[1] || "#{container_name}_1"
+
+        "--link #{@app_name}-#{container_name}_1:#{container_alias}"
+      end
+
+      envs_directives = (service["environment"] || []).map do |env_name, env_value|
+        "Environment=\"#{env_name}=#{env_value}\""
+      end
+
+      envs_run_parameters = (service["environment"] || []).map do |env_name, env_value|
+        "-e #{env_name}"
       end
 
       after = if service["links"]
-        "#{service["links"].last}.1"
+        container_name = service["links"].last.split(":")[0]
+
+        "#{@app_name}-#{container_name}.1"
       else
         "docker"
       end
@@ -49,7 +65,7 @@ class Fig2CoreOS
         base_path = @output_dir
       end
 
-  		File.open(File.join(base_path, "#{service_name}.1.service") , "w") do |file|
+      File.open(File.join(base_path, "#{service_name}.1.service") , "w") do |file|
         file << <<-eof
 [Unit]
 Description=Run #{service_name}_1
@@ -57,34 +73,24 @@ After=#{after}.service
 Requires=#{after}.service
 
 [Service]
+KillMode=none
+TimeoutStartSec=0
+User=core
 Restart=always
 RestartSec=10s
-ExecStartPre=/usr/bin/docker ps -a -q | xargs docker rm
-ExecStart=/usr/bin/docker run -rm -name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs.join(" ")} #{ports.join(" ")} #{image}
-ExecStartPost=/usr/bin/docker ps -a -q | xargs docker rm
+#{envs_directives.join("\n")}
+ExecStartPre=-/usr/bin/docker kill #{service_name}_1
+ExecStartPre=-/usr/bin/docker rm #{service_name}_1
+ExecStartPre=/usr/bin/docker pull #{image}
+ExecStart=/usr/bin/docker run #{privileged && "--privileged=true"} --rm --name #{service_name}_1 #{volumes.join(" ")} #{links.join(" ")} #{envs_run_parameters.join(" ")} #{ports.join(" ")} #{image} #{command}
 ExecStop=/usr/bin/docker kill #{service_name}_1
-ExecStopPost=/usr/bin/docker ps -a -q | xargs docker rm
+ExecStopPost=/usr/bin/docker rm #{service_name}_1
 
 [Install]
-WantedBy=local.target
-eof
-  		end
-
-      File.open(File.join(base_path, "#{service_name}-discovery.1.service"), "w") do |file|
-        port = %{\\"port\\": #{service["ports"].first.to_s.split(":").first}, } if service["ports"].to_a.size > 0
-        file << <<-eof
-[Unit]
-Description=Announce #{service_name}_1
-BindsTo=#{service_name}.1.service
-
-[Service]
-ExecStart=/bin/sh -c "while true; do etcdctl set /services/#{service_name}/#{service_name}_1 '{ \\"host\\": \\"%H\\", #{port}\\"version\\": \\"52c7248a14\\" }' --ttl 60;sleep 45;done"
-ExecStop=/usr/bin/etcdctl rm /services/#{service_name}/#{service_name}_1
-
-[X-Fleet]
-X-ConditionMachineOf=#{service_name}.1.service
+WantedBy=multi-user.target
 eof
       end
+
     end
   end
 
@@ -104,7 +110,6 @@ systemctl stop etcd-cluster.service
 eof
       @fig.each do |service_name, service|
         file << "cp " + File.join("share", "media", "state", "units", "#{service_name}.1.service") + " /media/state/units/#{service_name}.1.service\n"
-        file << "cp " + File.join("share", "media", "state", "units", "#{service_name}-discovery.1.service") + " /media/state/units/#{service_name}-discovery.1.service\n\n"
       end
 
       file << <<-eof

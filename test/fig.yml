@@ -8,7 +8,7 @@ lb:
   ports:
     - 80:80
   links:
-    - serf
+    - serf:serf
   environment:
     HAPROXY_PASSWORD: 38uf8hhf38h
 web:
